@@ -59,4 +59,11 @@ jobs:
       # and you have a `root_folder_id` specified so that rclone knows where to upload.
       - name: Upload CSV to Google Drive
         run: |
-          rclone copy orderbook_snapshots.csv mygdrive:  # The trailing colon means “root_folder_id” in Drive
+          rclone copy Eth_orderbook_snapshots.csv mygdrive:  # The trailing colon means “root_folder_id” in Drive
+
+      - name: Setup Rclone Configuration
+        env:
+          RCLONE_CONFIG: ${{ secrets.RCLONE_CONFIG }}
+        run: |
+          mkdir -p ~/.config/rclone/
+          echo "$RCLONE_CONFIG" > ~/.config/rclone/rclone.conf
