@@ -2,7 +2,7 @@
 
 name: Poll Order Book & Push to Google Drive
 
-# Run every 5 minutes (minimum for GitHub Actions)
+# Run on a 5‑minute schedule (minimum allowed by GitHub Actions)
 on:
   schedule:
     - cron: "*/5 * * * *"
@@ -33,15 +33,15 @@ jobs:
         run: |
           curl https://rclone.org/install.sh | sudo bash
 
-      # ── Step 5: Configure rclone using the secret RCLONE_CONFIG ──
-      - name: Configure rclone with Google Drive Service Account
+      # ── Step 5: Configure rclone from the RCLONE_CONFIG secret ──
+      - name: Configure rclone with Service Account
         run: |
           mkdir -p ~/.config/rclone/
           echo "${{ secrets.RCLONE_CONFIG }}" > ~/.config/rclone/rclone.conf
         shell: bash
 
-      # ── Step 6: Poll order‐book and append to CSV ──
-      - name: Poll order-book and append to CSV
+      # ── Step 6: Poll the order book and append to CSV ──
+      - name: Poll order‑book and append to CSV
         run: |
           python eth_poll_orderbook.py
 
