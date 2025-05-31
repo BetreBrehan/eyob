@@ -1,0 +1,54 @@
+# .github/workflows/poll.yml
+
+name: Poll Order Book & Push to Google Drive
+
+# Run every 5 minutes (minimum for GitHub Actions is 5-minute cron)
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+
+jobs:
+  poll_and_upload:
+    runs-on: ubuntu-latest
+    steps:
+
+      # Step 1: Check out the code (pulls in poll script, requirements.txt, etc.)
+      - name: Check out repository
+        uses: actions/checkout@v3
+
+      # Step 2: Set up Python 3.9
+      - name: Set up Python 3.9
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.9"
+
+      # Step 3: Install Python dependencies (ccxt)
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      # Step 4: Install rclone (required to push to Google Drive)
+      - name: Install rclone
+        run: |
+          curl https://rclone.org/install.sh | sudo bash
+
+      # Step 5: Write the rclone.conf from GitHub Secret into ~/.config/rclone/rclone.conf
+      # We create the directory and echo the secret contents there.
+      - name: Configure rclone with Google Drive Service Account
+        run: |
+          mkdir -p ~/.config/rclone/
+          echo "${{ secrets.RCLONE_CONFIG }}" > ~/.config/rclone/rclone.conf
+        shell: bash
+
+      # Step 6: Run the polling script (eth_poll_orderbook.py) to append a new row to the CSV
+      - name: Poll order-book and append to CSV
+        run: |
+          python eth_poll_orderbook.py
+
+      # Step 7: Push the updated CSV to Google Drive (via rclone). 
+      # We assume your rclone remote is named [mygdrive] in the rclone.conf, 
+      # and you have a `root_folder_id` specified so that rclone knows where to upload.
+      - name: Upload CSV to Google Drive
+        run: |
+          rclone copy orderbook_snapshots.csv mygdrive:  # The trailing colon means “root_folder_id” in Drive
