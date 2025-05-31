@@ -47,6 +47,14 @@ jobs:
           python eth_poll_orderbook.py
 
       # Step 7: Push the updated CSV to Google Drive (via rclone). 
+
+      - name: Setup Rclone Configuration
+        env:
+          RCLONE_CONFIG: ${{ secrets.RCLONE_CONFIG }}
+        run: |
+          echo "$RCLONE_CONFIG" > ~/.config/rclone/rclone.conf
+
+
       # We assume your rclone remote is named [mygdrive] in the rclone.conf, 
       # and you have a `root_folder_id` specified so that rclone knows where to upload.
       - name: Upload CSV to Google Drive
