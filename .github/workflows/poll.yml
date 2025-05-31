@@ -2,7 +2,7 @@
 
 name: Poll Order Book & Push to Google Drive
 
-# Run every 5 minutes (minimum for GitHub Actions is 5-minute cron)
+# Run every 5 minutes (minimum for GitHub Actions)
 on:
   schedule:
     - cron: "*/5 * * * *"
@@ -10,60 +10,42 @@ on:
 jobs:
   poll_and_upload:
     runs-on: ubuntu-latest
-    steps:
 
-      # Step 1: Check out the code (pulls in poll script, requirements.txt, etc.)
+    steps:
+      # ── Step 1: Check out the repository ──
       - name: Check out repository
         uses: actions/checkout@v3
 
-      # Step 2: Set up Python 3.9
+      # ── Step 2: Set up Python 3.9 ──
       - name: Set up Python 3.9
         uses: actions/setup-python@v4
         with:
           python-version: "3.9"
 
-      # Step 3: Install Python dependencies (ccxt)
+      # ── Step 3: Install Python dependencies (ccxt) ──
       - name: Install Python dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      # Step 4: Install rclone (required to push to Google Drive)
+      # ── Step 4: Install rclone ──
       - name: Install rclone
         run: |
           curl https://rclone.org/install.sh | sudo bash
 
-      # Step 5: Write the rclone.conf from GitHub Secret into ~/.config/rclone/rclone.conf
-      # We create the directory and echo the secret contents there.
+      # ── Step 5: Configure rclone using the secret RCLONE_CONFIG ──
       - name: Configure rclone with Google Drive Service Account
         run: |
           mkdir -p ~/.config/rclone/
           echo "${{ secrets.RCLONE_CONFIG }}" > ~/.config/rclone/rclone.conf
         shell: bash
 
-      # Step 6: Run the polling script (eth_poll_orderbook.py) to append a new row to the CSV
+      # ── Step 6: Poll order‐book and append to CSV ──
       - name: Poll order-book and append to CSV
         run: |
           python eth_poll_orderbook.py
 
-      # Step 7: Push the updated CSV to Google Drive (via rclone). 
-
-      - name: Setup Rclone Configuration
-        env:
-          RCLONE_CONFIG: ${{ secrets.RCLONE_CONFIG }}
-        run: |
-          echo "$RCLONE_CONFIG" > ~/.config/rclone/rclone.conf
-
-
-      # We assume your rclone remote is named [mygdrive] in the rclone.conf, 
-      # and you have a `root_folder_id` specified so that rclone knows where to upload.
+      # ── Step 7: Upload the updated CSV to Google Drive ──
       - name: Upload CSV to Google Drive
         run: |
-          rclone copy Eth_orderbook_snapshots.csv mygdrive:  # The trailing colon means “root_folder_id” in Drive
-
-      - name: Setup Rclone Configuration
-        env:
-          RCLONE_CONFIG: ${{ secrets.RCLONE_CONFIG }}
-        run: |
-          mkdir -p ~/.config/rclone/
-          echo "$RCLONE_CONFIG" > ~/.config/rclone/rclone.conf
+          rclone copy orderbook_snapshots.csv mygdrive:
