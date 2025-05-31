@@ -1,0 +1,38 @@
+name: Poll Order Book
+
+on:
+  schedule:
+    # Run every five minutes. (Minimum cron interval on GitHub Actions is 5 minutes.)
+    - cron: "*/5 * * * *"
+
+jobs:
+  fetch-orderbook:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.9"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Poll Order Book and append to CSV
+        run: |
+          python poll_orderbook.py
+
+      # OPTIONAL: Commit the CSV back into the repo. 
+      # WARNING: This will generate a huge commit history. 
+      # If you want to store CSV in the repo itself, uncomment these steps:
+      # - name: Commit and push CSV
+      #   run: |
+      #     git config user.name "github-actions[bot]"
+      #     git config user.email "github-actions[bot]@users.noreply.github.com"
+      #     git add orderbook_snapshots.csv
+      #     git commit -m "Add snapshot $(date -u +\"%Y-%m-%dT%H:%M:%SZ\")" || echo "No changes"
+      #     git push
