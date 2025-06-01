@@ -50,7 +50,7 @@ jobs:
       # ── Step 7: Poll the order book and append to CSV ──
       - name: Poll order‑book and append to CSV
         run: |
-          python Eth_poll_orderbook.py
+          python eth_poll_orderbook.py
 
       # ── Step 8: Upload the updated CSV to Google Drive ──
       - name: Upload CSV to Google Drive
