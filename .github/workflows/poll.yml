@@ -41,10 +41,14 @@ jobs:
       
       # ── Step 6: Configure rclone from the RCLONE_CONFIG secret ──
       - name: Configure rclone with Service Account
+        env:
+          RCLONE_CONFIG: ${{ secrets.RCLONE_CONFIG }}
         run: |
           mkdir -p ~/.config/rclone/
-          echo "${{ secrets.RCLONE_CONFIG }}" > ~/.config/rclone/rclone.conf
+          echo -e "${{ secrets.RCLONE_CONFIG }}" > ~/.config/rclone/rclone.conf
+          cat ~/.config/rclone/rclone.conf  # Debug: Check if the file was written correctly
         shell: bash
+
       
 
       # ── Step 7: Poll the order book and append to CSV ──
