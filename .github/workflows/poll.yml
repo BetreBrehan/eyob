@@ -48,4 +48,4 @@ jobs:
       # ── Step 7: Upload the updated CSV to Google Drive ──
       - name: Upload CSV to Google Drive
         run: |
-          rclone copy orderbook_snapshots.csv mygdrive:ygdrive:/ --drive-folder-id=1ho3ut4U-8W7lxQm8E8nRgOQFi0GHpok2
+          rclone copy orderbook_snapshots.csv mygdrive:/ --drive-folder-id=1ho3ut4U-8W7lxQm8E8nRgOQFi0GHpok2
