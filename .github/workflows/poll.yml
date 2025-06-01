@@ -1,6 +1,6 @@
 name: Poll Order Book & Push to Google Drive
 
-# ── Run every 5 minutes (GitHub Actions minimum) ──
+# Run every 5 minutes (GitHub Actions’ minimum)
 on:
   schedule:
     - cron: "*/5 * * * *"
@@ -10,55 +10,54 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # ── Step 1: Check out your repository ──
+      # 1) Check out the repository
       - name: Check out repository
         uses: actions/checkout@v3
 
-      # ── Step 2: Set up Python 3.9 ──
+      # 2) Set up Python 3.9
       - name: Set up Python 3.9
         uses: actions/setup-python@v4
         with:
           python-version: "3.9"
 
-      # ── Step 3: Install Python dependencies (ccxt, etc.) ──
+      # 3) Install Python dependencies
       - name: Install Python dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      # ── Step 4: Install rclone ──
+      # 4) Install rclone
       - name: Install rclone
         run: |
           curl https://rclone.org/install.sh | sudo bash
 
-      # ── Step 5: Write the service-account JSON to /tmp/sa.json ──
+      # 5) Write the service-account JSON into /tmp/sa.json
       - name: Write service-account key to /tmp/sa.json
         run: |
           mkdir -p /tmp
-          # Write the raw JSON from the secret into /tmp/sa.json
+          # The SA_JSON secret must contain only raw service-account JSON.
           echo "${{ secrets.SA_JSON }}" > /tmp/sa.json
         shell: bash
 
-      # ── Step 6: Build ~/.config/rclone/rclone.conf referencing /tmp/sa.json ──
+      # 6) Generate ~/.config/rclone/rclone.conf with no leading spaces
       - name: Generate rclone.conf
         run: |
           mkdir -p ~/.config/rclone/
-          # This here writes exactly four lines into rclone.conf
-          cat << 'EOF' > ~/.config/rclone/rclone.conf
-          [mygdrive]
-          type = drive
-          scope = drive.file
-          service_account_file = /tmp/sa.json
-          root_folder_id = 1ho3ut4U-8W7lxQm8E8nRgOQFi0GHpok2
-          EOF
+          cat <<EOF > ~/.config/rclone/rclone.conf
+[mygdrive]
+type = drive
+scope = drive.file
+service_account_file = /tmp/sa.json
+root_folder_id = 1ho3ut4U-8W7lxQm8E8nRgOQFi0GHpok2
+EOF
         shell: bash
 
-      # ── Step 7: Run your Python polling script ──
+      # 7) Run your Python polling script
       - name: Poll order-book and append to CSV
         run: |
           python eth_poll_orderbook.py
 
-      # ── Step 8: Upload the updated CSV to Google Drive ──
+      # 8) Upload the updated CSV to Google Drive
       - name: Upload CSV to Google Drive
         run: |
           rclone copy orderbook_snapshots.csv mygdrive:
