@@ -2,62 +2,49 @@
 
 name: Poll Order Book & Push to Google Drive
 
-# Run on a 5‑minute schedule (minimum allowed by GitHub Actions)
 on:
   schedule:
-    - cron: "*/5 * * * *"
+    - cron: "*/5 * * * *"   # runs every 5 minutes
 
 jobs:
   poll_and_upload:
     runs-on: ubuntu-latest
 
     steps:
-      # ── Step 1: Check out the repository ──
+      # 1) Check out the code
       - name: Check out repository
         uses: actions/checkout@v3
 
-      # ── Step 2: Set up Python 3.9 ──
+      # 2) Set up Python 3.9
       - name: Set up Python 3.9
         uses: actions/setup-python@v4
         with:
           python-version: "3.9"
 
-      # ── Step 3: Install Python dependencies (ccxt) ──
+      # 3) Install Python dependencies (ccxt)
       - name: Install Python dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      # ── Step 4: Install rclone ──
+      # 4) Install rclone (so we can push to Drive)
       - name: Install rclone
         run: |
           curl https://rclone.org/install.sh | sudo bash
-      
-      # ── Step 5: Debug - Check if rclone.conf exists ──
-      - name: Verify rclone.conf before setup
-        run: |
-          ls -l ~/.config/rclone/rclone.conf || echo "rclone.conf NOT FOUND"
-          cat ~/.config/rclone/rclone.conf || echo "rclone.conf EMPTY"
-      
-      # ── Step 6: Configure rclone from the RCLONE_CONFIG secret ──
+
+      # 5) Write the rclone.conf from the RCLONE_CONFIG secret
       - name: Configure rclone with Service Account
-        env:
-          RCLONE_CONFIG: ${{ secrets.RCLONE_CONFIG }}
         run: |
           mkdir -p ~/.config/rclone/
-          echo -e "${{ secrets.RCLONE_CONFIG }}" > ~/.config/rclone/rclone.conf
-          cat ~/.config/rclone/rclone.conf  # Debug: Check if the file was written correctly
+          echo "${{ secrets.RCLONE_CONFIG }}" > ~/.config/rclone/rclone.conf
         shell: bash
 
-      
-
-      # ── Step 7: Poll the order book and append to CSV ──
-      - name: Poll order‑book and append to CSV
+      # 6) Poll the order book and append a row to the CSV
+      - name: Poll order-book and append to CSV
         run: |
           python eth_poll_orderbook.py
 
-      # ── Step 8: Upload the updated CSV to Google Drive ──
+      # 7) Upload the updated CSV to Google Drive via rclone
       - name: Upload CSV to Google Drive
         run: |
-          rclone copy orderbook_snapshots.csv mygdrive:/ --drive-root-folder-id=1ho3ut4U-8W7lxQm8E8nRgOQFi0GHpok2
-
+          rclone copy orderbook_snapshots.csv mygdrive:
