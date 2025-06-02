@@ -1,8 +1,10 @@
+# .github/workflows/poll.yml
+
 name: Poll Order Book & Push to Google Drive (via Python API)
 
 on:
   schedule:
-    - cron: "*/5 * * * *"     # every 5 minutes
+    - cron: "*/5 * * * *"
   workflow_dispatch:
 
 jobs:
@@ -10,31 +12,31 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1) Check out the code
+      # ── Step 1: Check out the code (including existing CSV) ──
       - name: Check out repository
         uses: actions/checkout@v3
 
-      # 2) Set up Python 3.9
+      # ── Step 2: Set up Python 3.9 ──
       - name: Set up Python 3.9
         uses: actions/setup-python@v4
         with:
           python-version: "3.9"
 
-      # 3) Install Python dependencies (ccxt + Google Drive libs)
+      # ── Step 3: Install Python dependencies (ccxt + Google Drive libs) ──
       - name: Install Python dependencies
         run: |
           python -m pip install --upgrade pip
           pip install ccxt google-api-python-client google-auth
 
-      # 4) Poll the order-book and append to CSV
-      - name: Poll order-book and append to CSV
+      # ── Step 4: Poll all 10 USDT pairs & append to CSV ──
+      - name: Poll multiple pairs and append to CSV
         run: |
-          python eth_poll_orderbook.py
+          python multi_poll_orderbook.py
 
-      # 5) Upload CSV to Google Drive via Python API
+      # ── Step 5: Upload the updated CSV to Google Drive ──
       - name: Upload CSV to Google Drive
         env:
           GDRIVE_SA_JSON: ${{ secrets.GDRIVE_SA_JSON }}
-          GDRIVE_FOLDER_ID: "1ho3ut4U-8W7lxQm8E8nRgOQFi0GHpok2"   # or store this in a secret, too
+          GDRIVE_FOLDER_ID: ${{ secrets.GDRIVE_FOLDER_ID }}
         run: |
           python upload_drive.py
