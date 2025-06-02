@@ -45,6 +45,7 @@ jobs:
           mkdir -p ~/.config/rclone/
           cat <<EOF > ~/.config/rclone/rclone.conf
           [mygdrive]
+          type = drive
           scope = drive.file
           service_account_file = /tmp/sa.json
           root_folder_id = 1ho3ut4U-8W7lxQm8E8nRgOQFi0GHpok2
