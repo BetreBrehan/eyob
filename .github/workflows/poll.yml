@@ -52,6 +52,10 @@ jobs:
           EOF
         shell: bash
 
+      - name: Check sa.json first character
+        run: |
+          head -c 1 /tmp/sa.json | od -c
+          
       # 7) Run your Python polling script
       - name: Poll order-book and append to CSV
         run: |
