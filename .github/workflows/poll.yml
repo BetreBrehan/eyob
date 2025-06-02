@@ -3,6 +3,7 @@ name: Poll Order Book & Push to Google Drive (via Python API)
 on:
   schedule:
     - cron: "*/5 * * * *"     # every 5 minutes
+  workflow_dispatch:
 
 jobs:
   poll_and_upload:
