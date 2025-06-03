@@ -10,7 +10,9 @@ on:
 jobs:
   poll_and_upload:
     runs-on: ubuntu-latest
-
+    concurrency:
+      group: poll-and-upload       # or any unique name
+      cancel-in-progress: false     # do NOT wait for the previous run; simply drop the new one
     steps:
       # 1) Check out the repository (we need the code files)
       - name: Check out repository
