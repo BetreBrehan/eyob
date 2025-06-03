@@ -132,24 +132,59 @@ def fetch_best_bid_ask(exchange, symbol):
 # ── 4) CSV HELPERS ────────────────────────────────────────────────────────────────
 
 def append_row_to_local_csv(local_path, symbols, data_cols):
-    header = ["timestamp_utc"]
+    """
+    Append a timestamp + bids/asks for each symbol to the CSV at local_path.
+    If the file does not exist, or if its first line is missing/incorrect,
+    write a fresh header first.
+    """
+    # Build the correct header line
+    header_cols = ["timestamp_utc"]
     for sym in symbols:
         base = sym.replace("/", "_")
-        header += [f"{base}_bid", f"{base}_ask"]
+        header_cols += [f"{base}_bid", f"{base}_ask"]
+    header_line = ",".join(header_cols) + "\n"
 
+    # Build the data row
+    timestamp = datetime.utcnow().isoformat()
     flattened = []
     for bid, ask in data_cols:
-        flattened.append(bid if bid is not None else "")
-        flattened.append(ask if ask is not None else "")
+        flattened.append(str(bid) if bid is not None else "")
+        flattened.append(str(ask) if ask is not None else "")
+    data_line = timestamp + "," + ",".join(flattened) + "\n"
 
-    row = [datetime.utcnow().isoformat()] + flattened
+    # Check if local_path exists. If not, create it with header + first data row.
+    if not os.path.isfile(local_path):
+        with open(local_path, "w", newline="") as fp:
+            fp.write(header_line)
+            fp.write(data_line)
+        return
 
-    file_exists = os.path.isfile(local_path)
+    # If it does exist, read its first line to confirm it is our header
+    try:
+        with open(local_path, "r", newline="") as fp:
+            first_line = fp.readline()
+    except Exception:
+        # In case of any read error, rewrite the file from scratch:
+        with open(local_path, "w", newline="") as fp:
+            fp.write(header_line)
+            fp.write(data_line)
+        return
+
+    # If the first line is not exactly our header, rewrite the entire file with correct header
+    if not first_line.strip().startswith("timestamp_utc"):
+        # Read all existing lines (they are data rows lacking header)
+        with open(local_path, "r", newline="") as fp:
+            all_data = fp.read()
+        # Overwrite: write header, then all previous data rows, then the new row
+        with open(local_path, "w", newline="") as fp:
+            fp.write(header_line)
+            fp.write(all_data)
+            fp.write(data_line)
+        return
+
+    # Otherwise, the file already has the correct header; we can just append
     with open(local_path, "a", newline="") as fp:
-        writer = csv.writer(fp)
-        if not file_exists:
-            writer.writerow(header)
-        writer.writerow(row)
+        fp.write(data_line)
 
 
 # ── 5) MAIN: DOWNLOAD → POLL → APPEND → UPLOAD ──────────────────────────────────
