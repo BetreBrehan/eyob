@@ -1,18 +1,13 @@
-# .github/workflows/poll.yml
-
 name: Poll Order Book & Push to Google Drive (every 5 minutes)
 
 on:
   schedule:
-    - cron: "*/5 * * * *"    # every 5 minutes UTC
-  workflow_dispatch:        # allow manual runs
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
 
 jobs:
   poll_and_upload:
     runs-on: ubuntu-latest
-    concurrency:
-      group: poll-and-upload
-      cancel-in-progress: false
 
     steps:
       - name: Check out repository
@@ -37,10 +32,14 @@ jobs:
           echo "${{ secrets.GDRIVE_CREDENTIALS_JSON }}" > credentials.json
 
       - name: Restore token.pickle (optional)
-        if: ${{ secrets.GDRIVE_TOKEN_PICKLE_BASE64 != '' }}
+        env:
+          GDRIVE_TOKEN_PICKLE_BASE64: ${{ secrets.GDRIVE_TOKEN_PICKLE_BASE64 }}
         run: |
-          echo "${{ secrets.GDRIVE_TOKEN_PICKLE_BASE64 }}" \
-            | base64 -d > token.pickle
+          if [ -n "$GDRIVE_TOKEN_PICKLE_BASE64" ]; then
+            echo "$GDRIVE_TOKEN_PICKLE_BASE64" | base64 -d > token.pickle
+          else
+            echo "No token.pickle secret provided; skipping restore"
+          fi
 
       - name: Poll orderbook and sync with Google Drive
         env:
