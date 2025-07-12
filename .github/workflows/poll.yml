@@ -32,26 +32,15 @@ jobs:
             google-auth-httplib2 \
             google-auth-oauthlib
 
-      # ─────────────────────────────────────────────────────────────────────
-      # Provide OAuth client credentials
-      # ─────────────────────────────────────────────────────────────────────
-
-      # Option 1: credentials.json committed privately in repo
-      # (Skip these two steps if credentials.json is already in your repo root.)
-
       - name: Set up credentials.json
         run: |
           echo "${{ secrets.GDRIVE_CREDENTIALS_JSON }}" > credentials.json
 
-      - name: Restore token.pickle (optional on first run)
-        if: ${{ secrets.GDRIVE_TOKEN_PICKLE_BASE64 }}
+      - name: Restore token.pickle (optional)
+        if: ${{ secrets.GDRIVE_TOKEN_PICKLE_BASE64 != '' }}
         run: |
           echo "${{ secrets.GDRIVE_TOKEN_PICKLE_BASE64 }}" \
             | base64 -d > token.pickle
-
-      # ─────────────────────────────────────────────────────────────────────
-      # Run the script
-      # ─────────────────────────────────────────────────────────────────────
 
       - name: Poll orderbook and sync with Google Drive
         env:
