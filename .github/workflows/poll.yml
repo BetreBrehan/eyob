@@ -27,9 +27,15 @@ jobs:
             google-auth-httplib2 \
             google-auth-oauthlib
 
-      - name: Set up credentials.json
+      - name: Restore credentials.json
+        env:
+          GDRIVE_CREDENTIALS_JSON_BASE64: ${{ secrets.GDRIVE_CREDENTIALS_JSON_BASE64 }}
         run: |
-          echo "${{ secrets.GDRIVE_CREDENTIALS_JSON }}" > credentials.json
+          if [ -z "$GDRIVE_CREDENTIALS_JSON_BASE64" ]; then
+            echo "ERROR: GDRIVE_CREDENTIALS_JSON_BASE64 is not set" >&2
+            exit 1
+          fi
+          echo "$GDRIVE_CREDENTIALS_JSON_BASE64" | base64 -d > credentials.json
 
       - name: Restore token.pickle (optional)
         env:
