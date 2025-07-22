@@ -58,7 +58,7 @@ jobs:
 
       - name: Save updated token.pickle
         if: success()
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: token-pickle
           path: token.pickle
