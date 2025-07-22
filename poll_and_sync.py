@@ -75,7 +75,7 @@ def get_drive_service():
             pickle.dump(creds, f)
 
     # 4) Build and return the Drive client
-    return build('drive', 'v3', credentials=creds)
+    return build('drive', 'v4', credentials=creds)
 
 # ── DRIVE HELPERS ───────────────────────────────────────────────────────────────
 def find_remote_file_id(service, filename, folder_id):
