@@ -5,10 +5,7 @@ import io
 import sys
 from datetime import datetime
 import ccxt
-import pickle
-
-from google_auth_oauthlib.flow import InstalledAppFlow
-from google.auth.transport.requests import Request
+from google.oauth2 import service_account
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload, MediaIoBaseDownload
 
@@ -29,26 +26,18 @@ EXCHANGE_OPTS = {"enableRateLimit": True}
 # ── DRIVE AUTH ──────────────────────────────────────────────────────────────────
 def get_drive_service():
     """
-    Authorize with OAuth 2.0 (user account) and return a Drive v3 service.
-    Saves and reuses token.pickle for refresh.
+    Authorize using a Google service account and return a Drive v3 service.
+    Requires the service account key file path in the GOOGLE_APPLICATION_CREDENTIALS env var.
     """
-    creds = None
-    token_path = 'token.pickle'
+    key_path = os.environ.get('GOOGLE_APPLICATION_CREDENTIALS')
+    if not key_path or not os.path.isfile(key_path):
+        print(f"[ERROR] Service account key file not found at {key_path}", file=sys.stderr)
+        sys.exit(1)
 
-    if os.path.exists(token_path):
-        with open(token_path, 'rb') as token_file:
-            creds = pickle.load(token_file)
-
-    if not creds or not creds.valid:
-        if creds and creds.expired and creds.refresh_token:
-            creds.refresh(Request())
-        else:
-            flow = InstalledAppFlow.from_client_secrets_file(
-                'credentials.json', SCOPES)
-            creds = flow.run_local_server(port=0)
-        with open(token_path, 'wb') as token_file:
-            pickle.dump(creds, token_file)
-
+    creds = service_account.Credentials.from_service_account_file(
+        key_path,
+        scopes=SCOPES
+    )
     return build('drive', 'v3', credentials=creds)
 
 # ── DRIVE HELPERS ───────────────────────────────────────────────────────────────
