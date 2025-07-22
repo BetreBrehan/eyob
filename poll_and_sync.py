@@ -3,11 +3,18 @@
 import os
 import io
 import sys
-from datetime import datetime
+import pickle
+from datetime import datetime, timezone
 import ccxt
-from google.oauth2 import service_account
+from google_auth_oauthlib.flow import InstalledAppFlow
+from google.auth.transport.requests import Request
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload, MediaIoBaseDownload
+
+
+
+
+CLIENT_SECRETS_FILE = 'credentials.json'
 
 # ── CONFIG ──────────────────────────────────────────────────────────────────────
 SCOPES = ['https://www.googleapis.com/auth/drive.file']
@@ -23,34 +30,68 @@ WANTED_SYMBOLS = [
 EXCHANGE_ID = "gateio"
 EXCHANGE_OPTS = {"enableRateLimit": True}
 
-# ── DRIVE AUTH ──────────────────────────────────────────────────────────────────
+# ── DRIVE AUTH (OAuth2 User Flow via Console) ──────────────────────────────────
+TOKEN_PICKLE_FILE    = 'token.pickle'
+OOB_REDIRECT_URI     = 'urn:ietf:wg:oauth:2.0:oob'
+
 def get_drive_service():
     """
-    Authorize using a Google service account and return a Drive v3 service.
-    Requires the service account key file path in the GOOGLE_APPLICATION_CREDENTIALS env var.
+    Manual console/OOB flow for @gmail.com:
+      1) Prints a one‑time URL
+      2) You paste back the code
+      3) Pickles creds (with refresh token)
+      4) Future runs auto‑refresh headlessly
     """
-    key_path = os.environ.get('GOOGLE_APPLICATION_CREDENTIALS')
-    if not key_path or not os.path.isfile(key_path):
-        print(f"[ERROR] Service account key file not found at {key_path}", file=sys.stderr)
-        sys.exit(1)
+    creds = None
 
-    creds = service_account.Credentials.from_service_account_file(
-        key_path,
-        scopes=SCOPES
-    )
+    # 1) Load existing creds if we have them
+    if os.path.exists(TOKEN_PICKLE_FILE):
+        with open(TOKEN_PICKLE_FILE, 'rb') as f:
+            creds = pickle.load(f)
+
+    # 2) If no creds or invalid, do the manual console/OOB flow
+    if not creds or not creds.valid:
+        if creds and creds.expired and creds.refresh_token:
+            creds.refresh(Request())
+        else:
+            flow = InstalledAppFlow.from_client_secrets_file(
+                CLIENT_SECRETS_FILE,
+                SCOPES,
+                redirect_uri=OOB_REDIRECT_URI
+            )
+            auth_url, _ = flow.authorization_url(
+                access_type='offline',
+                prompt='consent'
+            )
+            print("\nPlease visit this URL in your browser:\n")
+            print(auth_url, "\n")
+            code = input("Enter the authorization code here: ").strip()
+
+            flow.fetch_token(code=code)
+            creds = flow.credentials
+
+        # 3) Persist for next time
+        with open(TOKEN_PICKLE_FILE, 'wb') as f:
+            pickle.dump(creds, f)
+
+    # 4) Build and return the Drive client
     return build('drive', 'v3', credentials=creds)
 
 # ── DRIVE HELPERS ───────────────────────────────────────────────────────────────
 def find_remote_file_id(service, filename, folder_id):
     query = f"name = '{filename}' and '{folder_id}' in parents and trashed = false"
-    resp = service.files().list(q=query, fields="files(id)", pageSize=1).execute()
+    resp = service.files().list(
+        q=query, fields="files(id)", pageSize=1
+    ).execute()
     files = resp.get('files', [])
     return files[0]['id'] if files else None
 
 
 def download_remote_csv(service, file_id, local_path):
     with io.FileIO(local_path, mode='wb') as fh:
-        downloader = MediaIoBaseDownload(fh, service.files().get_media(fileId=file_id))
+        downloader = MediaIoBaseDownload(
+            fh, service.files().get_media(fileId=file_id)
+        )
         done = False
         while not done:
             _, done = downloader.next_chunk()
@@ -59,10 +100,17 @@ def download_remote_csv(service, file_id, local_path):
 def upload_csv_to_drive(service, local_path, folder_id, existing_file_id):
     media = MediaFileUpload(local_path, mimetype='text/csv', resumable=True)
     if existing_file_id:
-        service.files().update(fileId=existing_file_id, media_body=media).execute()
+        service.files().update(
+            fileId=existing_file_id,
+            media_body=media
+        ).execute()
     else:
         metadata = {'name': REMOTE_FILENAME, 'parents': [folder_id]}
-        service.files().create(body=metadata, media_body=media, fields='id').execute()
+        service.files().create(
+            body=metadata,
+            media_body=media,
+            fields='id'
+        ).execute()
 
 # ── EXCHANGE HELPERS ────────────────────────────────────────────────────────────
 def init_exchange_and_filter_symbols():
@@ -99,10 +147,11 @@ def fetch_best_bid_ask(exchange, symbol):
 
 # ── CSV FUNCTIONS ────────────────────────────────────────────────────────────────
 def append_row_to_local_csv(local_path, symbols, data_cols):
-    header_cols = ['timestamp_utc'] + [f"{sym.replace('/','_')}_{side}"
-        for sym in symbols for side in ('bid','ask')]
+    header_cols = ['timestamp_utc'] + [
+        f"{sym.replace('/','_')}_{side}" for sym in symbols for side in ('bid','ask')
+    ]
     header = ','.join(header_cols) + '\n'
-    timestamp = datetime.utcnow().isoformat()
+    timestamp = datetime.now(timezone.utc).isoformat()
     row = [str(x) if x is not None else '' for pair in data_cols for x in pair]
     line = timestamp + ',' + ','.join(row) + '\n'
 
