@@ -10,7 +10,7 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload, MediaIoBaseDownload
-
+from google.oauth2 import service_account
 
 
 
@@ -35,48 +35,13 @@ TOKEN_PICKLE_FILE    = 'token.pickle'
 OOB_REDIRECT_URI     = 'urn:ietf:wg:oauth:2.0:oob'
 
 def get_drive_service():
-    """
-    Manual console/OOB flow for @gmail.com:
-      1) Prints a one‑time URL
-      2) You paste back the code
-      3) Pickles creds (with refresh token)
-      4) Future runs auto‑refresh headlessly
-    """
-    creds = None
-
-    # 1) Load existing creds if we have them
-    if os.path.exists(TOKEN_PICKLE_FILE):
-        with open(TOKEN_PICKLE_FILE, 'rb') as f:
-            creds = pickle.load(f)
-
-    # 2) If no creds or invalid, do the manual console/OOB flow
-    if not creds or not creds.valid:
-        if creds and creds.expired and creds.refresh_token:
-            creds.refresh(Request())
-        else:
-            flow = InstalledAppFlow.from_client_secrets_file(
-                CLIENT_SECRETS_FILE,
-                SCOPES,
-                redirect_uri=OOB_REDIRECT_URI
-            )
-            auth_url, _ = flow.authorization_url(
-                access_type='offline',
-                prompt='consent'
-            )
-            print("\nPlease visit this URL in your browser:\n")
-            print(auth_url, "\n")
-            code = input("Enter the authorization code here: ").strip()
-
-            flow.fetch_token(code=code)
-            creds = flow.credentials
-
-        # 3) Persist for next time
-        with open(TOKEN_PICKLE_FILE, 'wb') as f:
-            pickle.dump(creds, f)
-
-    # 4) Build and return the Drive client
-    return build('drive', 'v4', credentials=creds)
-
+    sa_path = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS")
+    if sa_path and os.path.isfile(sa_path):
+        creds = service_account.Credentials.from_service_account_file(
+            sa_path,
+            scopes=SCOPES,
+        )
+        return build('drive', 'v3', credentials=creds)
 # ── DRIVE HELPERS ───────────────────────────────────────────────────────────────
 def find_remote_file_id(service, filename, folder_id):
     query = f"name = '{filename}' and '{folder_id}' in parents and trashed = false"
