@@ -42,12 +42,12 @@
            python -m pip install --upgrade pip
            pip install ccxt google-api-python-client google-auth-httplib2 google-auth-oauthlib
 
-      - name: Poll orderbook and sync with Google Drive
-        env:
+       - name: Poll orderbook and sync with Google Drive
+         env:
           GDRIVE_FOLDER_ID: ${{ secrets.GDRIVE_FOLDER_ID }}
           # point at the file you just wrote
           GOOGLE_APPLICATION_CREDENTIALS: ${{ github.workspace }}/sa-key.json
-        run: python poll_and_sync.py
+         run: python poll_and_sync.py
 
        - name: Upload updated token.pickle
          if: success()
