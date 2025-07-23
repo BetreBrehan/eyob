@@ -29,6 +29,13 @@ jobs:
         run: |
           echo "${{ secrets.GCP_SA_KEY2 }}" > sa-key.json
 
+      - name: Restore token.pickle (optional fallback)
+        if: ${{ secrets.GDRIVE_TOKEN_B64_LO != '' }}
+        env:
+          TOKEN_B64: ${{ secrets.GDRIVE_TOKEN_B64_LO }}
+        run: |
+          echo "$TOKEN_B64" | base64 --decode > token.pickle
+
       - name: Install Python dependencies
         run: |
           python -m pip install --upgrade pip
@@ -37,5 +44,6 @@ jobs:
       - name: Poll orderbook and sync with Google Drive
         env:
           GDRIVE_FOLDER_ID: ${{ secrets.GDRIVE_FOLDER_ID }}
+          # service‐account JSON will be auto‐picked up by the client library:
           GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.workspace }}/sa-key.json
         run: python poll_and_sync.py
