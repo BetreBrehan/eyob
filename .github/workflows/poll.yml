@@ -20,12 +20,12 @@
            key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
            restore-keys: ${{ runner.os }}-pip-
 
-       - name: Download previous token.pickle (if any)
-         uses: actions/download-artifact@v4
-         with:
-           name: token-pickle
-           path: .
-         continue-on-error: true
+      - name: Download previous token.pickle (if any)
+        uses: actions/download-artifact@v4
+        with:
+          name: token-pickle
+          path: .
+        continue-on-error: true
 
        - name: Set up Python 3.9
          uses: actions/setup-python@v4
@@ -34,8 +34,7 @@
 
        - name: Restore GCP service account key
          run: |
-
-          printf '%s' "${{ secrets.GCP_SA_KEY2 }}" > sa-key.json
+           echo "${{ secrets.GCP_SA_KEY2 }}" > sa-key.json
 
        - name: Install Python dependencies
          run: |
@@ -44,14 +43,13 @@
 
        - name: Poll orderbook and sync with Google Drive
          env:
-          GDRIVE_FOLDER_ID: ${{ secrets.GDRIVE_FOLDER_ID }}
-          # point at the file you just wrote
-          GOOGLE_APPLICATION_CREDENTIALS: ${{ github.workspace }}/sa-key.json
+           GDRIVE_FOLDER_ID: ${{ secrets.GDRIVE_FOLDER_ID }}
+           GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.workspace }}/sa-key.json
          run: python poll_and_sync.py
 
-       - name: Upload updated token.pickle
-         if: success()
-         uses: actions/upload-artifact@v4
-         with:
-           name: token-pickle
-           path: token.pickle
+      - name: Upload updated token.pickle
+        if: success() && always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: token-pickle
+          path: token.pickle
