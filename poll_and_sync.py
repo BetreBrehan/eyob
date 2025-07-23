@@ -35,6 +35,7 @@ TOKEN_PICKLE_FILE    = 'token.pickle'
 OOB_REDIRECT_URI     = 'urn:ietf:wg:oauth:2.0:oob'
 
 def get_drive_service():
+    # 1) If in CI (or anywhere) GOOGLE_APPLICATION_CREDENTIALS is set, use SA flow
     sa_path = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS")
     if sa_path and os.path.isfile(sa_path):
         creds = service_account.Credentials.from_service_account_file(
@@ -42,6 +43,30 @@ def get_drive_service():
             scopes=SCOPES,
         )
         return build('drive', 'v3', credentials=creds)
+
+    # 2) Otherwise fall back to your InstalledAppFlow (for local dev)
+    creds = None
+    if os.path.exists(TOKEN_PICKLE_FILE):
+        with open(TOKEN_PICKLE_FILE, 'rb') as f:
+            creds = pickle.load(f)
+
+    if not creds or not creds.valid:
+        if creds and creds.expired and creds.refresh_token:
+            creds.refresh(Request())
+        else:
+            flow = InstalledAppFlow.from_client_secrets_file(
+                CLIENT_SECRETS_FILE, SCOPES, redirect_uri=OOB_REDIRECT_URI
+            )
+            auth_url, _ = flow.authorization_url(access_type='offline', prompt='consent')
+            print("\nPlease visit this URL:\n", auth_url, "\n")
+            code = input("Enter the authorization code here: ").strip()
+            flow.fetch_token(code=code)
+            creds = flow.credentials
+        with open(TOKEN_PICKLE_FILE, 'wb') as f:
+            pickle.dump(creds, f)
+
+    return build('drive', 'v3', credentials=creds)
+
 # ── DRIVE HELPERS ───────────────────────────────────────────────────────────────
 def find_remote_file_id(service, filename, folder_id):
     query = f"name = '{filename}' and '{folder_id}' in parents and trashed = false"
