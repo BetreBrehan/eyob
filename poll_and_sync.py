@@ -67,6 +67,12 @@ def get_drive_service():
 
     return build('drive', 'v3', credentials=creds)
 
+
+    # In GitHub Actions we always expect a SA key
+    if os.environ.get("GITHUB_ACTIONS"):
+        print("[ERROR] No service account key found in CI", file=sys.stderr)
+        sys.exit(1)
+
 # ── DRIVE HELPERS ───────────────────────────────────────────────────────────────
 def find_remote_file_id(service, filename, folder_id):
     query = f"name = '{filename}' and '{folder_id}' in parents and trashed = false"
