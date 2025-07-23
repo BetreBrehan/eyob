@@ -33,11 +33,11 @@ jobs:
       # do the check in-shell so we don’t reference `secrets` in `if:`:
       - name: Restore token.pickle (optional fallback)
         run: |
-          # load into a shell var so we can check & process safely
-          TOKEN_B64="${{ secrets.GDRIVE_TOKEN_B64_LO }}"
+          # Pull the raw secret and strip all CR/LF so base64 sees a single continuous blob
+          RAW="${{ secrets.GDRIVE_TOKEN_B64_LO }}"
+          TOKEN_B64="$(printf '%s' "$RAW" | tr -d '\r\n')"
           if [ -n "$TOKEN_B64" ]; then
-            printf '%s' "$TOKEN_B64" \
-              | base64 -d > token.pickle
+            printf '%s' "$TOKEN_B64" | base64 -d > token.pickle
           fi
 
       - name: Install Python dependencies
