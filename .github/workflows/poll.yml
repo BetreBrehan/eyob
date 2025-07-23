@@ -19,13 +19,15 @@ jobs:
           path: ~/.cache/pip
           key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
           restore-keys: ${{ runner.os }}-pip-
-      - name: Download previous token.pickle (if any)
+
+      # ── Download last-run token.pickle (if it exists) ────────────────
+      - name: Download previous token.pickle
         uses: actions/download-artifact@v4
         with:
           name: token-pickle
           path: .
         continue-on-error: true
-        
+
       - name: Set up Python 3.9
         uses: actions/setup-python@v4
         with:
@@ -35,17 +37,6 @@ jobs:
         run: |
           echo "${{ secrets.GCP_SA_KEY2 }}" > sa-key.json
 
-      # If you still want to use your pre‑generated token.pickle as a fallback,
-      # do the check in-shell so we don’t reference `secrets` in `if:`:
-      - name: Restore token.pickle (optional fallback)
-        run: |
-          # Pull the raw secret and strip all CR/LF so base64 sees a single continuous blob
-          RAW="${{ secrets.GDRIVE_TOKEN_B64_LO }}"
-          TOKEN_B64="$(printf '%s' "$RAW" | tr -d '\r\n')"
-          if [ -n "$TOKEN_B64" ]; then
-            printf '%s' "$TOKEN_B64" | base64 -d > token.pickle
-          fi
-
       - name: Install Python dependencies
         run: |
           python -m pip install --upgrade pip
@@ -54,12 +45,12 @@ jobs:
       - name: Poll orderbook and sync with Google Drive
         env:
           GDRIVE_FOLDER_ID: ${{ secrets.GDRIVE_FOLDER_ID }}
-          # service‐account JSON will be auto‐picked up by the client library:
           GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.workspace }}/sa-key.json
         run: python poll_and_sync.py
 
+      # ── Upload the fresh token.pickle so next run can reuse it ───────
       - name: Upload updated token.pickle
-        if: success() && always()
+        if: success()
         uses: actions/upload-artifact@v4
         with:
           name: token-pickle
