@@ -33,8 +33,8 @@
       # do the check in-shell so we don’t reference `secrets` in `if:`:
        - name: Restore token.pickle (optional fallback)
          run: |
-          if [ -n "${{ secrets.GDRIVE_TOKEN_B64_LO }}" ]; then
-            echo "${{ secrets.GDRIVE_TOKEN_B64_LO }}" | base64 --decode > token.pickle
+          if [ -n "${{ secrets.GDRIVE_NEW }}" ]; then
+            echo "${{ secrets.GDRIVE_NEW }}" | base64 --decode > token.pickle
           fi
 
        - name: Install Python dependencies
