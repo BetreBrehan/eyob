@@ -1,4 +1,4 @@
- name: Poll Order Book & Push to Google Drive (every 5 minutes)
+name: Poll Order Book & Push to Google Drive (every 5 minutes)
 
 on:
   schedule:
