@@ -50,14 +50,14 @@ jobs:
       - name: Show service-account identity (debug)
         run: |
           python - <<'PY'
-import json, os, sys
-p = os.path.join(os.environ.get('GITHUB_WORKSPACE','.'), 'sa-key.json')
-if os.path.isfile(p):
-    j = json.load(open(p))
-    print("service account client_email:", j.get("client_email"))
-else:
-    print("sa-key.json not found; will use token.pickle fallback if provided")
-PY
+          import json, os, sys
+          p = os.path.join(os.environ.get('GITHUB_WORKSPACE','.'), 'sa-key.json')
+          if os.path.isfile(p):
+              j = json.load(open(p))
+              print("service account client_email:", j.get("client_email"))
+          else:
+              print("sa-key.json not found; will use token.pickle fallback if provided")
+          PY
 
       - name: Restore token.pickle (run only when dispatch input auth=token)
         if: ${{ github.event.inputs.auth == 'token' }}
