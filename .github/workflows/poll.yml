@@ -79,5 +79,5 @@ jobs:
       - name: Poll orderbook and sync with Google Drive
         env:
           GDRIVE_FOLDER_ID: ${{ secrets.GDRIVE_FOLDER_ID }}
-          GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.workspace }}/sa-key.json
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ github.workspace }}/sa-key.json
         run: python poll_and_sync.py
