@@ -8,7 +8,7 @@ on:
       auth:
         description: "Which auth to use in this run: 'sa' (service account) or 'token' (user token)"
         required: false
-        default: 'sa'
+        default: 'token'
         type: choice
         options:
           - sa
@@ -76,8 +76,17 @@ jobs:
           python -m pip install --upgrade pip
           pip install ccxt google-api-python-client google-auth-httplib2 google-auth-oauthlib
 
-      - name: Poll orderbook and sync with Google Drive
+      # If you're using the service‐account key:
+      - name: Poll & sync (service account)
+        if: ${{ github.event.inputs.auth == 'sa' }}
         env:
           GDRIVE_FOLDER_ID: ${{ secrets.GDRIVE_FOLDER_ID }}
           GOOGLE_APPLICATION_CREDENTIALS: ${{ github.workspace }}/sa-key.json
+        run: python poll_and_sync.py
+
+      # If you're using your personal token.pickle instead:
+      - name: Poll & sync (user token)
+        if: ${{ github.event.inputs.auth == 'token' }}
+        env:
+          GDRIVE_FOLDER_ID: ${{ secrets.GDRIVE_FOLDER_ID }}
         run: python poll_and_sync.py
