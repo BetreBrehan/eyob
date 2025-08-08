@@ -14,7 +14,7 @@ on:
           - sa
           - token
 
- jobs:
+jobs:
    poll_and_upload:
      runs-on: ubuntu-24.04
 
