@@ -35,13 +35,18 @@ TOKEN_PICKLE_FILE    = 'token.pickle'
 OOB_REDIRECT_URI     = 'urn:ietf:wg:oauth:2.0:oob'
 
 def get_drive_service():
-    # 1) If in CI (or anywhere) GOOGLE_APPLICATION_CREDENTIALS is set, use SA flow
+    # 1) If GOOGLE_APPLICATION_CREDENTIALS is set and file exists, use SA flow.
+    #    Print debug info so CI logs confirm which path is taken.
     sa_path = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS")
+    print(f"[DBG] GITHUB_ACTIONS={os.environ.get('GITHUB_ACTIONS')}", file=sys.stderr)
+    print(f"[DBG] GOOGLE_APPLICATION_CREDENTIALS={sa_path}", file=sys.stderr)
+    print(f"[DBG] sa file exists? {os.path.isfile(sa_path) if sa_path else False}", file=sys.stderr)
     if sa_path and os.path.isfile(sa_path):
         creds = service_account.Credentials.from_service_account_file(
             sa_path,
             scopes=SCOPES,
         )
+        print("[INFO] Using service account credentials (GOOGLE_APPLICATION_CREDENTIALS).", file=sys.stderr)
         return build('drive', 'v3', credentials=creds)
 
     # 2) Otherwise fall back to your InstalledAppFlow (for local dev)
@@ -52,7 +57,17 @@ def get_drive_service():
 
     if not creds or not creds.valid:
         if creds and creds.expired and creds.refresh_token:
-            creds.refresh(Request())
+            try:
+                creds.refresh(Request())
+            except Exception as e:
+                # Refresh failed (expired/revoked). Remove token and fall back to interactive flow.
+                print("[WARN] Refresh failed (expired or revoked):", e, file=sys.stderr)
+                try:
+                    os.remove(TOKEN_PICKLE_FILE)
+                    print("[WARN] Deleted invalid token.pickle; will re-authorize interactively.", file=sys.stderr)
+                except Exception:
+                    pass
+                creds = None
         else:
             flow = InstalledAppFlow.from_client_secrets_file(
                 CLIENT_SECRETS_FILE, SCOPES, redirect_uri=OOB_REDIRECT_URI
