@@ -13,7 +13,6 @@ on:
         options:
           - sa
           - token
-
  jobs:
    poll_and_upload:
      runs-on: ubuntu-24.04
