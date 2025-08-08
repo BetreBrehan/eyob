@@ -18,40 +18,40 @@ jobs:
    poll_and_upload:
      runs-on: ubuntu-24.04
 
-     steps:
-       - name: Check out repository
-         uses: actions/checkout@v4
+   steps:
+     - name: Check out repository
+       uses: actions/checkout@v4
 
-       - name: Cache pip
-         uses: actions/cache@v3
-         with:
-           path: ~/.cache/pip
-           key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
-           restore-keys: ${{ runner.os }}-pip-
+     - name: Cache pip
+       uses: actions/cache@v3
+       with:
+         path: ~/.cache/pip
+         key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+         restore-keys: ${{ runner.os }}-pip-
 
-       - name: Set up Python 3.9
-         uses: actions/setup-python@v4
-         with:
-           python-version: '3.9'
+     - name: Set up Python 3.9
+       uses: actions/setup-python@v4
+       with:
+         python-version: '3.9'
 
-       - name: Restore GCP service account key
-        env:
-          SA_KEY: ${{ secrets.GCP_SA_KEY2 }}
-        run: |
-          # If SA_KEY is empty, we leave it for the token fallback.
-          if [ -z "$SA_KEY" ]; then
-            echo "No service account key in secrets; continuing (token fallback possible)"
-            exit 0
-          fi
-          # Write the SA key safely to the workspace (preserves newlines)
-          printf '%s' "$SA_KEY" > "$GITHUB_WORKSPACE/sa-key.json"
-          echo "Wrote sa-key.json (size: $(wc -c < "$GITHUB_WORKSPACE/sa-key.json")) bytes"
+     - name: Restore GCP service account key
+      env:
+        SA_KEY: ${{ secrets.GCP_SA_KEY2 }}
+      run: |
+        # If SA_KEY is empty, we leave it for the token fallback.
+        if [ -z "$SA_KEY" ]; then
+          echo "No service account key in secrets; continuing (token fallback possible)"
+          exit 0
+        fi
+        # Write the SA key safely to the workspace (preserves newlines)
+        printf '%s' "$SA_KEY" > "$GITHUB_WORKSPACE/sa-key.json"
+        echo "Wrote sa-key.json (size: $(wc -c < "$GITHUB_WORKSPACE/sa-key.json")) bytes"
 
-     # If you still want to use your pre‑generated token.pickle as a fallback,
-     # do the check in-shell so we don’t reference `secrets` in `if:`:
-       - name: Show service-account identity (debug)
-         run: |
-           python - <<'PY'
+   # If you still want to use your pre‑generated token.pickle as a fallback,
+   # do the check in-shell so we don’t reference `secrets` in `if:`:
+     - name: Show service-account identity (debug)
+       run: |
+         python - <<'PY'
 import json, os, sys
 p = os.path.join(os.environ.get('GITHUB_WORKSPACE','.'), 'sa-key.json')
 if os.path.isfile(p):
